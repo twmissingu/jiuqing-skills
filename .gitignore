@@ -5,3 +5,9 @@ Thumbs.db
 *~
 __pycache__/
 *.pyc
+
+# 进化中间产物（test set、judge 评分、baseline），不入库
+.evolution/
+
+# 会话交接文档（jiuqing-session-handoff 生成），纯本地、不入库
+handoff/

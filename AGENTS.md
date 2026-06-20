@@ -4,6 +4,10 @@
 
 Agent 通用技能库，包含基础、开发、内容三大领域的 skill。适用于 Codex、Claude Code、OpenCode 等 agent 平台。
 
+## handoff/ 目录
+
+`handoff/` 存放 `jiuqing-session-handoff` 生成的会话交接文档，用于切换模型或开新会话时接力。它是**纯本地中转目录**：已在 `.gitignore` 中忽略，不进版本控制、不用于人与人之间交接。不要把该目录下的文件提交入库，过期的交接文档自行清理。
+
 ## Skill 发现规则
 
 - 技能位于 `core/`、`dev/`、`content/` 目录下
