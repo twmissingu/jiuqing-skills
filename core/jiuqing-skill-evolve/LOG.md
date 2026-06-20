@@ -59,3 +59,9 @@
 - 有效的改法：新增失败路径表 + 删除注意事项中的重复强调，conciseness 有改善
 - 踩的坑：roles-debate 是最复杂的行为类 skill，纯文字改进对 process-predictability（12/15）帮助有限
 - 对本 skill 的改进线索：threshold-calibration（3/5）的 20 轮上限和 >=2 角色共识阈值需要校准依据
+
+## 2026-06-20 自进化了 jiuqing-skill-evolve
+- 结果：keep 1 轮；改进 aggregate.py（+JSON 自动修复）和 SKILL.md（+judge 格式规范）
+- 有效的改法：aggregate.py 新增 normalize_judge_json() 函数，自动处理嵌套 dimensions、extra 字段、list 格式、未转义中文引号四类常见格式问题；SKILL.md 在 baseline score 步骤明确 judge 输出格式要求
+- 踩的坑：10 次进化中每次都有 judge 格式问题需要手动修复，说明这是系统性痛点而非偶发；修复应下沉到工具层而非每次靠 prompt 约束
+- 对本 skill 的改进线索：后续可考虑为 test-set-template.md 增加 test prompt 的格式校验（确保 scene 字段覆盖均衡）
