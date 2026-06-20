@@ -115,6 +115,8 @@ def load_json(path):
 
 
 def validate_judge(path, data):
+    if not data:
+        sys.exit(f"ERROR: {path} 是空文件或空 JSON（judge 可能未正确输出）")
     missing = [d for d in RUBRIC_MAX if d not in data]
     if missing:
         sys.exit(f"ERROR: {path} 缺维度 {missing}（judge 必须覆盖全部 rubric 维度）")
