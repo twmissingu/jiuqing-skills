@@ -137,6 +137,7 @@ def main():
     ap.add_argument("--target-cluster", nargs="*", default=[],
                     help="本轮意图改进的 dimension cluster，这些维度不受 regression guard 约束")
     ap.add_argument("--emit", help="把本轮聚合结果写到该路径，作为下一轮 baseline")
+    ap.add_argument("--anchor", help="anchor judge 的评分 JSON（跨轮固定不换，用于稳定跨轮对比）")
     args = ap.parse_args()
 
     if len(args.judges) < 3 or len(args.judges) % 2 == 0:
@@ -199,9 +200,29 @@ def main():
         print(f"  - {r}")
 
     if args.emit:
+        emit_data = {"dimension_medians": medians, "total": total}
+        # Anchor judge 跨轮对比
+        if args.anchor:
+            try:
+                anchor = load_json(args.anchor)
+                anchor_total = sum(v["score"] for v in anchor.values())
+                anchor_medians = {k: v["score"] for k, v in anchor.items()}
+                emit_data["anchor_total"] = anchor_total
+                emit_data["anchor_medians"] = anchor_medians
+                print(f"\n== Anchor judge（{args.anchor}）==")
+                print(f"  anchor total: {anchor_total}")
+                if args.baseline:
+                    base = load_json(args.baseline)
+                    anchor_base = base.get("anchor_total")
+                    if anchor_base:
+                        anchor_gain = round(anchor_total - anchor_base, 2)
+                        print(f"  anchor gain: {anchor_gain:+}（baseline anchor={anchor_base}）")
+                        if anchor_gain < 0:
+                            print(f"  ⚠ anchor judge 显示 regression，建议谨慎 keep")
+            except SystemExit:
+                print(f"  ⚠ anchor judge 加载失败，跳过 anchor 对比")
         with open(args.emit, "w", encoding="utf-8") as f:
-            json.dump({"dimension_medians": medians, "total": total}, f,
-                      ensure_ascii=False, indent=2)
+            json.dump(emit_data, f, ensure_ascii=False, indent=2)
         print(f"\n已写出 baseline → {args.emit}")
 
 

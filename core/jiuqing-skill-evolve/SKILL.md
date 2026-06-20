@@ -25,7 +25,8 @@ depends: []
 2. **跳过判定** —— baseline ≥ 90 分的 skill 可跳过进化（改进空间极小，投入产出比不划算）；80-90 分的 skill 仍应尝试一轮进化；< 80 分的 skill 必须进化。
 3. **构建或继承 test set** —— 若 `.evolution/<skill-name>/test-set.json` 已存在（上轮进化遗留），直接复用；若不存在，写 ≥6 道测试 prompt（让 agent 实际执行该 skill 的典型场景），按 `test-set-template.md` 随机切成 **train** 与 **holdout**。test set 跨轮保持稳定以确保分数可比；仅在 LOG 暴露新 gap 时按 `test-set-template.md` 的增量规则补充，不大幅重写。holdout 全程不参与 edit 决策，仅在 keep 判定时作 judge；无 holdout 不许进化。
 3. **baseline 继承或新建** —— 若 `.evolution/<skill-name>/baseline.json` 已存在（上轮 keep 的最高分），直接作为本轮 baseline，无需重新打分。若不存在，派 ≥3 个 independent judge（judge ≠ 后续 edit agent），各按 `evaluation-rubric.md` 在 train 与 holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`。judge 输出必须是**平铺 JSON**（`{"维度名": {"score": N, "reason": "..."}}`），不要嵌套在 `dimensions` 等 key 下；reason 字段内不要用双引号包裹中文术语。`scripts/aggregate.py` 会自动修复常见的格式问题，但仍建议 judge 严格按格式输出。脚本会在 judge 文件缺失或维度不全时直接报错，挡住"跳过实跑、脑补打分"。
-4. 🔴 **CHECKPOINT** —— 把 baseline 报告（各 dimension 分、最弱 dimension、variance）交用户，确认改进方向再继续。
+4. **指定 anchor judge** —— 从 ≥3 个 judge 中指定 1 个为 **anchor judge**，固定贯穿该 skill 的所有进化轮次（不轮换）。anchor judge 的评分 JSON 用 `--anchor` 参数传给 `aggregate.py`，脚本会输出 anchor 的跨轮 gain。其余 2 个 judge 每轮换新。anchor judge 的作用：提供跨轮可比性锚点，抵消轮换 judge 带来的方差。anchor judge 的身份在进化开始时确定，写入 `.evolution/<skill-name>/anchor-id.txt`（仅记录 judge 编号，如 "judge1"）。
+5. 🔴 **CHECKPOINT** —— 把 baseline 报告（各 dimension 分、最弱 dimension、variance）交用户，确认改进方向再继续。
 
 ## ② Evolution loop（每轮一次，可多轮）
 
@@ -34,15 +35,20 @@ depends: []
 1. **locate** —— 读最新 score，找出最弱 dimension 及其相关 cluster。本轮只动这一 cluster。
 2. **edit** —— 对该 cluster 生成**一处**具体改动，落到实在措辞（不写"优化一下"这类空话），编辑 SKILL.md。
 3. **commit** —— `git commit` 本轮改动，说明动了哪个 cluster、怎么改。
-4. **re-score** —— 派**新一批** independent judge（不复用上轮 judge，避免 anchoring 上轮分数），train、holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`，用 `scripts/aggregate.py --baseline .evolution/<skill-name>/baseline.json --target-cluster 本轮簇` 聚合。脚本据 median 与上轮对比、算 gain、按阈值自动标出 regression 与高 variance。
+4. **re-score** —— 派 **2 个新 judge**（不复用上轮 judge，避免 anchoring 上轮分数）+ 保留 **anchor judge**（跨轮固定），共 3 个 judge。train、holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`，用 `scripts/aggregate.py --baseline .evolution/<skill-name>/baseline.json --target-cluster 本轮簇 --anchor .evolution/<skill-name>/anchor-<轮次>.json` 聚合。脚本据 median 与上轮对比、算 gain、按阈值自动标出 regression 与高 variance，并输出 anchor judge 的跨轮 gain。
 5. **regression guard** —— 由 `aggregate.py` 落实：任一**非目标 cluster** 的 dimension median 较上轮跌幅 > 阈值（脚本内集中定义），即便总分上升也判 revert。
 6. **keep / revert** —— 采纳脚本建议：keep 须 holdout gain ≥ 阈值、无 regression、variance 未告警。否则 `git revert`（**禁用 `git reset --hard`**，保留失败轨迹供分析）。
    - **keep 后**：把本轮聚合 `--emit` 为 `.evolution/<skill-name>/baseline.json`，然后**回到步骤 1 开始下一轮**（locate 新的最弱 cluster → edit → re-score → …）。循环直到 early-stop。
    - **revert 后**：baseline 不变，**回到步骤 1 重新 locate**，换一个不同的 cluster 尝试。同一 cluster 连续 revert 2 次则跳过该 cluster。
-7. **early-stop** —— 满足任一即停止循环：
-   - 单轮 holdout gain < 动态阈值（`aggregate.py` 据 baseline 总分自动计算）
-   - 同一 cluster 连续 2 轮 revert
-   - 所有 cluster 都已尝试过
+
+> 🔴 **GATE — 循环续接检查（步骤 6 之后必须执行）**：
+> 完成 keep/revert 后，逐条检查 early-stop 条件：
+> 1. 单轮 gain < 动态阈值？ → 满足则停止，进入 ③
+> 2. 同一 cluster 连续 2 轮 revert？ → 满足则停止，进入 ③
+> 3. 所有 cluster 都已尝试过？ → 满足则停止，进入 ③
+> **以上三条均不满足 → 必须回到步骤 1，不可宣布完成。** 如果你发现自己想停下来但不满足任何 early-stop 条件，这是协议违反——继续循环。
+
+7. **early-stop** —— 满足 GATE 任一条件即停止循环。
 8. 🔴 **CHECKPOINT** —— 展示本轮 diff、各 dimension 分变化、keep/revert 结论，由用户确认是否进入下一轮。
 
 ## ③ 交付前自检
@@ -64,8 +70,8 @@ depends: []
 当用户要求进化多个 skill 时（如"把所有 skill 都进化一遍"），按以下流程组织：
 
 1. **排队** —— 按复杂度从低到高排序（脚本类 → 文档类 → 行为类 → 自进化），先处理简单的积累 LOG 经验，最后处理复杂的。自进化永远放最后。
-2. **逐个执行** —— 每个 skill 走完整的 ①→②→③→④ 流程。一个 skill 完成后再开始下一个。
-3. **并行 judge** —— 单个 skill 的多轮 judge 应并行派发以节省时间；不同 skill 的 judge 互不干扰，也可并行。
+2. **逐个执行，禁止并行** —— 每个 skill 走完整的 ①→②→③→④ 流程。**一个 skill 完成全部循环（直到 early-stop）并写完 LOG 后，才开始下一个。** 禁止同时对多个 skill 启动进化流程——并行进化会导致 judge 混淆、改动归因不清、上下文超载。
+3. **单 skill 内可并行 judge** —— 同一个 skill 的 3 个 judge（含 anchor）应并行派发以节省时间，但不同 skill 的 judge 不得并行。
 4. **共享 LOG** —— 所有 skill 的进化经验追写到同一个 `LOG.md`，每条标注被改 skill 名。LOG 是全局语料，不按 skill 隔离。
 5. **batch checkpoint** —— 每完成 3-4 个 skill 做一次批量 checkpoint：展示已进化 skill 的 baseline→终值对比、总体进展、剩余 skill 列表。让用户决定是否继续。
 6. **test set 复用** —— 同类 skill（如 image-generate 和 video-generate）的 test set 可参考但不直接复用——它们的 API 调用方式相似但参数和边界不同。
@@ -78,3 +84,5 @@ depends: []
 - 一轮跨多个不相关 dimension cluster 乱改。
 - 为凑分灌水。
 - 静默吞掉异常（judge 超时、输出非 JSON 必须报出，不当作通过）。
+- **同时对多个 skill 启动进化流程**（必须一个完成后再开始下一个）。
+- **在 GATE 检查不满足 early-stop 条件时宣布完成**（必须回到步骤 1 继续循环）。
