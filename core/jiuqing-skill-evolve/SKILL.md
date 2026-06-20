@@ -22,8 +22,8 @@ depends: []
 ## ① Setup（进化前一次性）
 
 1. **single editable asset** —— 一次只 edit 一个 SKILL.md，改动才可归因。多个 skill 排队逐个进化。
-2. **构建 test set 并切分** —— 写 ≥6 道测试 prompt（让 agent 实际执行该 skill 的典型场景），按 `test-set-template.md` 随机切成 **train** 与 **holdout**。holdout 全程不参与 edit 决策，仅在 keep 判定时作 judge；无 holdout 不许进化。
-3. **baseline score** —— 派 ≥3 个 independent judge（judge ≠ 后续 edit agent），各按 `evaluation-rubric.md` 在 train 与 holdout 上实跑后 score。用 `scripts/aggregate.py` 校验各 judge 的评分 JSON、取每个 dimension 的 median、算 variance，并 `--emit` 出 baseline 文件。脚本会在 judge 文件缺失或维度不全时直接报错，挡住"跳过实跑、脑补打分"。
+2. **构建 test set 并切分** —— 写 ≥6 道测试 prompt（让 agent 实际执行该 skill 的典型场景），按 `test-set-template.md` 随机切成 **train** 与 **holdout**，存到 `.evolution/<skill-name>/test-set.json`。holdout 全程不参与 edit 决策，仅在 keep 判定时作 judge；无 holdout 不许进化。
+3. **baseline score** —— 派 ≥3 个 independent judge（judge ≠ 后续 edit agent），各按 `evaluation-rubric.md` 在 train 与 holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`。judge 输出必须是**平铺 JSON**（`{"维度名": {"score": N, "reason": "..."}}`），不要嵌套在 `dimensions` 等 key 下；reason 字段内不要用双引号包裹中文术语。`scripts/aggregate.py` 会自动修复常见的格式问题（嵌套、extra 字段、list 格式、未转义引号），但仍建议 judge 严格按格式输出。脚本会在 judge 文件缺失或维度不全时直接报错，挡住"跳过实跑、脑补打分"。
 4. 🔴 **CHECKPOINT** —— 把 baseline 报告（各 dimension 分、最弱 dimension、variance）交用户，确认改进方向再继续。
 
 ## ② Evolution loop（每轮一次，可多轮）
@@ -33,9 +33,9 @@ depends: []
 1. **locate** —— 读最新 score，找出最弱 dimension 及其相关 cluster。本轮只动这一 cluster。
 2. **edit** —— 对该 cluster 生成**一处**具体改动，落到实在措辞（不写"优化一下"这类空话），编辑 SKILL.md。
 3. **commit** —— `git commit` 本轮改动，说明动了哪个 cluster、怎么改。
-4. **re-score** —— 派**新一批** independent judge（不复用上轮 judge，避免 anchoring 上轮分数），train、holdout 上实跑后 score，用 `scripts/aggregate.py --baseline 上轮 --target-cluster 本轮簇` 聚合。脚本据 median 与上轮对比、算 gain、按阈值自动标出 regression 与高 variance。
+4. **re-score** —— 派**新一批** independent judge（不复用上轮 judge，避免 anchoring 上轮分数），train、holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`，用 `scripts/aggregate.py --baseline .evolution/<skill-name>/baseline.json --target-cluster 本轮簇` 聚合。脚本据 median 与上轮对比、算 gain、按阈值自动标出 regression 与高 variance。
 5. **regression guard** —— 由 `aggregate.py` 落实：任一**非目标 cluster** 的 dimension median 较上轮跌幅 > 阈值（脚本内集中定义），即便总分上升也判 revert。
-6. **keep / revert** —— 采纳脚本建议：keep 须 holdout gain ≥ 阈值、无 regression、variance 未告警。否则 `git revert`（**禁用 `git reset --hard`**，保留失败轨迹供分析）。keep 时把本轮聚合 `--emit` 为新 baseline；baseline 只锁定被 keep 过的最高分，revert 轮不污染 baseline。
+6. **keep / revert** —— 采纳脚本建议：keep 须 holdout gain ≥ 阈值、无 regression、variance 未告警。否则 `git revert`（**禁用 `git reset --hard`**，保留失败轨迹供分析）。keep 时把本轮聚合 `--emit` 为 `.evolution/<skill-name>/baseline.json`；baseline 只锁定被 keep 过的最高分，revert 轮不污染 baseline。
 7. **early-stop** —— 单轮 holdout gain < 1 分，或连续 2 轮无 keep，自动 early-stop。
 8. 🔴 **CHECKPOINT** —— 展示本轮 diff、各 dimension 分变化、keep/revert 结论，由用户确认是否进入下一轮。
 
@@ -46,7 +46,7 @@ depends: []
 ## ④ 收尾
 
 - 复盘：从 baseline 到最终，holdout 总分增量、贡献最大的 cluster、被 revert 的轮次（失败轨迹也是产出）。
-- 交付最终 SKILL.md、test-set.json、各轮分数轨迹，供用户复核 gain 真实可查。
+- 交付最终 SKILL.md、`.evolution/<skill-name>/test-set.json`、各轮分数轨迹，供用户复核 gain 真实可查。
 - **写 LOG** —— 按 `self-evolve.md` 的格式，把本次进化的效果与踩过的坑追写进 `LOG.md`。这是固定收尾，不可跳过——它是后续自进化的语料。
 
 ## ⑤ 自进化（手动触发）
