@@ -53,11 +53,11 @@ depends: []
    - **revert 后**：baseline 不变，**回到步骤 1 重新 locate**，换一个不同的 cluster 尝试。同一 cluster 连续 revert 2 次则跳过该 cluster。
 
 > 🔴 **GATE — 循环续接检查（步骤 6 之后必须执行）**：
-> 完成 keep/revert 后，逐条检查 early-stop 条件：
-> 1. 单轮 gain < 动态阈值？ → 满足则停止，进入 ③
-> 2. 同一 cluster 连续 2 轮 revert？ → 满足则停止，进入 ③
-> 3. 所有 cluster 都已尝试过？ → 满足则停止，进入 ③
-> **以上三条均不满足 → 必须回到步骤 1，不可宣布完成。** 如果你发现自己想停下来但不满足任何 early-stop 条件，这是协议违反——继续循环。
+> 完成 keep/revert 后，**逐条回答以下问题**（不可跳过、不可凭印象回答）：
+> 1. 本轮 holdout gain 是多少？是否 < 动态阈值？ → gain < 阈值则停止，进入 ③
+> 2. 被 edit 的 cluster 名是什么？该 cluster 已连续 revert 几次？ → 连续 2 次则停止，进入 ③
+> 3. 已尝试过的 cluster 列表是？是否还有未尝试的 cluster？ → 全部尝试过则停止，进入 ③
+> **以上三条答案均为"不满足停止条件" → 写出下一轮要 edit 的 cluster 名，然后回到步骤 1。** 如果你发现自己想停下来但无法回答这三个问题中的任何一个，这是协议违反——继续循环。
 
 7. **early-stop** —— 满足 GATE 任一条件即停止循环。
 8. 🔴 **CHECKPOINT** —— 展示本轮 diff、各 dimension 分变化、keep/revert 结论，由用户确认是否进入下一轮。
