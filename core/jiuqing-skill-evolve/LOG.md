@@ -125,3 +125,13 @@
 - SKILL.md ② 步骤 7：early-stop 简化为"单轮 gain < 阈值"
 - SKILL.md ② 步骤 6：revert 后回到 locate 换 cluster
 - SKILL.md ①：新增跳过标准（baseline ≥90 可跳过）
+
+## 2026-06-20 自进化（三项协议强化）
+
+### 改进内容
+1. **GATE 检查点**：在 ② Evolution loop 步骤 6 后加了强制检查点，逐条检查 early-stop 条件，不满足则必须回到步骤 1。新增红线："在 GATE 检查不满足 early-stop 条件时宣布完成"。
+2. **Anchor judge**：① Setup 新增步骤 4（指定 anchor judge），固定贯穿同一 skill 所有轮次。aggregate.py 新增 `--anchor` 参数，输出 anchor 的跨轮 gain 用于稳定对比。② 步骤 4 改为"2 新 judge + anchor judge"。
+3. **批量禁止并行**：⑥ 批量进化步骤 2 从"逐个执行"改为"逐个执行，禁止并行"，明确"一个 skill 完成全部循环并写完 LOG 后才开始下一个"。新增红线："同时对多个 skill 启动进化流程"。
+
+### 驱动力
+两轮实战中 agent 反复违反协议：跳过 re-score、keep 后停止循环、并行处理 10 个 skill。文字描述不够，需要结构性约束（GATE 检查点）和显式禁止（红线）。
