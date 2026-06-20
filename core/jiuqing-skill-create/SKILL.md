@@ -83,3 +83,11 @@ skill-name/
 | 命名与已有 skill 冲突 | 扫描发现同名 skill | triage 第 2 道闸门拦截：建议改进已有 skill 而非新建 |
 | 需求范围过大 | 需求横跨多个不相关动作 | triage 第 3 道闸门拦截：建议拆分为多个 skill |
 | 对齐后用户长时间不回复 | 步骤 ② 中途停滞 | 保留已确认的部分，用默认值填充未确认项，复述后交付 |
+
+## 安全约束
+
+本 skill **只创建 SKILL.md 及其附属文件**（REFERENCE.md、scripts/），不执行其他操作。具体禁止：
+- 不执行 `rm`、`git commit`、`git push`、`curl` 或其他与创建 skill 无关的命令
+- 不在 skill 中嵌入可执行任意 shell 命令的内容（如 `system("...")`、`subprocess` 调用外部脚本）
+- 不创建包含密钥、token、密码等敏感信息的 skill
+- 创建的 skill 须符合仓库命名约定（`jiuqing-名词-动词`），不创建绕过命名规范的 skill
