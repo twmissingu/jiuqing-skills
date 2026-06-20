@@ -1,29 +1,37 @@
 # Scoring Rubric（满分 100）
 
-每轮按本表 score。structural dimension 靠静态分析判定；effectiveness dimension **必须实跑 test set 观察 agent 产出**，不能凭读 SKILL.md 想象。effectiveness 权重最高——格式合规但产出差仍为低分。
+每轮按本表 score。structural dimension 靠静态分析判定；effectiveness dimension **必须实跑 test set 观察 agent 产出**，不能凭读 SKILL.md 想象。effectiveness 权重最高——格式合规但产出差仍为低分。infrastructure dimension 评 skill 是否依赖未落地的工具/魔数/未覆盖的失败模式，**专治"灯下找钥匙"——把 rubric 照不到的盲区拉进打分视野**；仅在被评 skill 依赖脚本、阈值或自动化编排时计分，纯文档型 skill 此组按满分计（不适用即不扣）。
 
 judge 统一输出 JSON：`{"dimension": {"score": 分, "reason": "依据"}, ...}`，便于多 judge 聚合。
 
-## Structural dimensions（静态分析，共 40 分）
+## Structural dimensions（静态分析，共 35 分）
 
 | dimension | 分值 | 判定标准 |
 | --- | --- | --- |
-| trigger-clarity | 8 | description 是否只写触发条件、能否让 agent 准确判断何时加载；概括了流程则扣分 |
-| step-verifiability | 8 | 每步是否以可检验的完成标准收尾；标准模糊（"做好""处理一下"）扣分 |
-| info-layering | 6 | 是否按紧迫度排序、随用随查内容是否下沉到指针后，避免正文臃肿 |
-| single-source | 6 | 同一含义是否只定义一处，有无重复带来的维护冲突 |
+| trigger-clarity | 7 | description 是否只写触发条件、能否让 agent 准确判断何时加载；概括了流程则扣分 |
+| step-verifiability | 7 | 每步是否以可检验的完成标准收尾；标准模糊（"做好""处理一下"）扣分 |
+| info-layering | 5 | 是否按紧迫度排序、随用随查内容是否下沉到指针后，避免正文臃肿 |
+| single-source | 5 | 同一含义是否只定义一处，有无重复带来的维护冲突 |
 | conciseness | 6 | 有无 no-op 句（模型默认即会做的废话）、有无堆砌雷同例子 |
-| consistency | 6 | 术语是否统一、前后说法是否一致 |
+| consistency | 5 | 术语是否统一、前后说法是否一致 |
 
-## Effectiveness dimensions（必须实跑 test set，共 60 分）
+## Effectiveness dimensions（必须实跑 test set，共 50 分）
 
 | dimension | 分值 | 判定标准 |
 | --- | --- | --- |
-| process-predictability | 18 | 同类输入多次执行，agent 是否每次走相同*流程*（非相同结果）；流程发散扣分 |
-| task-completion | 16 | 测试 prompt 产出是否真正满足要求、有无半途收工 |
-| failure-path-encoding | 12 | 已知 failure path 是否被显式编码、被测时是否成功避开；只写"别犯错"不算 |
-| actionable-specificity | 8 | 有无模糊措辞（"建议""可以考虑""视情况""灵活处理"）导致行为漂移 |
-| high-risk-blacklist | 6 | 破坏性操作（`rm -rf`、`git reset --hard`、强推）是否被显式禁止 |
+| process-predictability | 15 | 同类输入多次执行，agent 是否每次走相同*流程*（非相同结果）；流程发散扣分 |
+| task-completion | 14 | 测试 prompt 产出是否真正满足要求、有无半途收工 |
+| failure-path-encoding | 10 | 已知 failure path 是否被显式编码、被测时是否成功避开；只写"别犯错"不算 |
+| actionable-specificity | 6 | 有无模糊措辞（"建议""可以考虑""视情况""灵活处理"）导致行为漂移 |
+| high-risk-blacklist | 5 | 破坏性操作（`rm -rf`、`git reset --hard`、强推）是否被显式禁止 |
+
+## Infrastructure dimensions（共 15 分；不适用则按满分计，不扣）
+
+| dimension | 分值 | 判定标准 |
+| --- | --- | --- |
+| tooling-executability | 6 | skill 依赖的关键步骤（如"实跑测试""采集产出"）有无可执行脚本/工具兜底，还是仅靠 agent 自律；地基步骤悬空则低分 |
+| threshold-calibration | 5 | 流程中的魔数（阈值、轮数、比例）是否说明来源或与噪声水平挂钩，还是拍脑袋写死、无校准依据 |
+| failure-coverage | 4 | 已声称的失败来源是否穷尽了被测域的主要失败模式，有无明显遗漏（如只防个体噪声却漏群体同向偏差） |
 
 ## Scoring discipline
 
