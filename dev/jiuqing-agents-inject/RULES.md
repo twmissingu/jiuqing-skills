@@ -25,6 +25,10 @@ Turn vague tasks into verifiable goals before starting. Weak criteria ("make it 
 - Only change lines directly related to the user's request. Don't refactor adjacent code.
 - For large files, read the relevant sections fully; never assume what's in parts you haven't read.
 
+## Doc Placement
+
+Unless this project already defines its own doc-path convention (in which case follow that), put every `.md` file — including docs produced by skills — under `docs/`. Only `AGENTS.md` and `README.md` stay at the repo root.
+
 ## Hard Prohibitions
 
 1. **NEVER add content the user didn't request** — no "while I'm at it" additions. Example: user asks to add a variable, don't also add a comment explaining it.
