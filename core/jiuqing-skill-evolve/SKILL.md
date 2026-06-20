@@ -19,6 +19,17 @@ depends: []
 
 后续每步对应堵住这三类来源。评分维度与权重见 `evaluation-rubric.md`，测试集切分见 `test-set-template.md`。
 
+## 协议阈值校准
+
+| 阈值 | 值 | 来源 |
+|------|-----|------|
+| KEEP_MIN_GAIN_BASE | 1.0 | aggregate.py 内定义，随 baseline 动态缩放 |
+| REGRESSION_DROP | 2.0 | 2 分在 100 分制中为 2%，低于此为 judge 噪声 |
+| HIGH_VARIANCE | 2.0 | 样本标准差 >2 说明 judge 分歧显著 |
+| 跳过标准 | baseline ≥90 | ≥90 分的 skill 改进空间 <10%，投入产出比不划算 |
+| 同一 cluster revert 次数上限 | 2 次 | 单次 revert 可能是误判，连续 2 次说明该方向推不动 |
+| anchor judge | 1 个固定 | 抵消轮换 judge 方差，提供跨轮可比性锚点 |
+
 ## ① Setup（进化前一次性）
 
 1. **single editable asset** —— 一次只 edit 一个 SKILL.md，改动才可归因。多个 skill 排队逐个进化。
@@ -86,3 +97,14 @@ depends: []
 - 静默吞掉异常（judge 超时、输出非 JSON 必须报出，不当作通过）。
 - **同时对多个 skill 启动进化流程**（必须一个完成后再开始下一个）。
 - **在 GATE 检查不满足 early-stop 条件时宣布完成**（必须回到步骤 1 继续循环）。
+
+## 失败路径
+
+| 场景 | 信号 | 处理 |
+|------|------|------|
+| edit 后想跳过 re-score 直接提交 | agent 觉得改动小不需要重新评分 | 红线禁止。每次 edit 后必须 re-score，无例外 |
+| keep 后想宣布完成 | agent 觉得"已经改进了，够了" | 检查 GATE：若不满足 early-stop 条件则必须回到步骤 1 |
+| revert 后想跳到下个 skill | agent 觉得这个 skill 改不动了 | 回到 locate 换 cluster 重试，同一 cluster 连续 revert 2 次才跳过 |
+| 想并行处理多个 skill | agent 觉得这样效率高 | 红线禁止。并行导致 judge 混淆和改动归因不清 |
+| judge 输出空 JSON 或超上限分数 | aggregate.py 报错 | 补发 judge；检查 prompt 是否明确写了分数上限 |
+| 用户说"不用评分了直接改" | 用户要求跳过评分步骤 | 解释评分是进化的基础，跳过评分的改动无法验证真伪 |
