@@ -36,7 +36,7 @@ depends: []
 2. **跳过判定** —— baseline ≥ 90 分的 skill 可跳过进化（改进空间极小，投入产出比不划算）；80-90 分的 skill 仍应尝试一轮进化；< 80 分的 skill 必须进化。
 3. **构建或继承 test set** —— 若 `.evolution/<skill-name>/test-set.json` 已存在（上轮进化遗留），直接复用；若不存在，写 ≥6 道测试 prompt（让 agent 实际执行该 skill 的典型场景），按 `test-set-template.md` 随机切成 **train** 与 **holdout**。test set 跨轮保持稳定以确保分数可比；仅在 LOG 暴露新 gap 时按 `test-set-template.md` 的增量规则补充，不大幅重写。holdout 全程不参与 edit 决策，仅在 keep 判定时作 judge；无 holdout 不许进化。
 3. **baseline 继承或新建** —— 若 `.evolution/<skill-name>/baseline.json` 已存在（上轮 keep 的最高分），直接作为本轮 baseline，无需重新打分。若不存在，派 ≥3 个 independent judge（judge ≠ 后续 edit agent），各按 `evaluation-rubric.md` 在 train 与 holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`。judge 输出必须是**平铺 JSON**（`{"维度名": {"score": N, "reason": "..."}}`），不要嵌套在 `dimensions` 等 key 下；reason 字段内不要用双引号包裹中文术语。`scripts/aggregate.py` 会自动修复常见的格式问题，但仍建议 judge 严格按格式输出。脚本会在 judge 文件缺失或维度不全时直接报错，挡住"跳过实跑、脑补打分"。
-4. **指定 anchor judge** —— 从 ≥3 个 judge 中指定 1 个为 **anchor judge**，固定贯穿该 skill 的所有进化轮次（不轮换）。anchor judge 的作用：提供跨轮可比性锚点，抵消轮换 judge 带来的方差。身份在进化开始时确定，写入 `.evolution/<skill-name>/anchor-id.txt`（仅记录 judge 编号，如 "judge1"）。评分 JSON 用 `--anchor` 参数传给 `aggregate.py`，脚本输出 anchor 的跨轮 gain。其余 2 个 judge 每轮换新。
+4. **指定 anchor judge** —— 从 ≥3 个 judge 中指定 1 个为 **anchor judge**，固定贯穿该 skill 的所有进化轮次（不轮换）。anchor judge 的评分 JSON 用 `--anchor` 参数传给 `aggregate.py`，脚本会输出 anchor 的跨轮 gain。其余 2 个 judge 每轮换新。anchor judge 的作用：提供跨轮可比性锚点，抵消轮换 judge 带来的方差。anchor judge 的身份在进化开始时确定，写入 `.evolution/<skill-name>/anchor-id.txt`（仅记录 judge 编号，如 "judge1"）。
 5. 🔴 **CHECKPOINT** —— 把 baseline 报告（各 dimension 分、最弱 dimension、variance）交用户，确认改进方向再继续。
 
 ## ② Evolution loop（每轮一次，可多轮）
