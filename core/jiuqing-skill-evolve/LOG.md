@@ -114,3 +114,14 @@
 2. **"连续 2 轮无 keep"的 early-stop 条件无意义** —— 当前协议是每轮 edit 后立即 re-score 并 keep/revert。如果第一轮就 early-stop（gain < 阈值），根本没有"连续 2 轮"可言。early-stop 条件应改为"单轮 gain < 阈值"即可。
 3. **revert 后的处理路径未编码** —— roles-debate REVERT 后，agent 直接提交了 revert commit 然后跳到下个 skill，没有尝试换一个 cluster 重新 edit。revert 后应该回到 locate 步骤找下一个最弱 cluster 再试。
 4. **"无需进化"的判定标准缺失** —— 对于 baseline ≥ 84 的 6 个 skill，agent 直接跳过了，没有走任何进化流程。但 protocol 没有定义"什么条件下可以跳过"。应该明确：baseline ≥ 90 可跳过；80-90 之间仍应尝试一轮进化。
+
+### 第二轮 Round 2 keep/revert 决策
+- **goal-set**：KEEP（88→94，+6）。失败路径补充有效，failure-path-encoding 提升。
+- **skill-create**：REVERT（89→85，-4）。自检验证步骤的 grep/find 操作反而降低了 step-verifiability——agent 被具体命令干扰了对核心流程的关注。
+- **product-polish**：KEEP（85→89，+4）。convergence.md 阈值校准表有效，threshold-calibration 提升。
+
+### 协议修复已落地
+- SKILL.md ② 步骤 6：keep 后显式写"回到步骤 1"
+- SKILL.md ② 步骤 7：early-stop 简化为"单轮 gain < 阈值"
+- SKILL.md ② 步骤 6：revert 后回到 locate 换 cluster
+- SKILL.md ①：新增跳过标准（baseline ≥90 可跳过）
