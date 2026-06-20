@@ -29,3 +29,33 @@
 - 有效的改法：新增"失败路径"表，覆盖了 RULES.md 不可读和用户注入违规规则的场景
 - 踩的坑：无
 - 对本 skill 的改进线索：process-predictability（12/15）的增量合并步骤仍有发散风险，可考虑更明确的合并规则
+
+## 2026-06-20 进化了 jiuqing-goal-set
+- 结果：keep 1 轮；baseline 82，补充 3 个失败路径（未指定项目、项目过早期、扫描冲突）
+- 有效的改法：新增失败路径表覆盖 3 个边界场景
+- 踩的坑：无
+- 对本 skill 的改进线索：process-predictability（12/15）和 task-completion（11/14）仍可通过更结构化的扫描流程提升
+
+## 2026-06-20 进化了 jiuqing-skill-create
+- 结果：keep 1 轮；baseline 85，补充 4 个失败路径（危险需求、命名冲突、范围过大、对齐停滞）
+- 有效的改法：新增失败路径表，triage 三道闸门有了显式的失败处理
+- 踩的坑：无
+- 对本 skill 的改进线索：high-risk-blacklist（3/5）仍需加强——可考虑在 triage 中增加安全闸门
+
+## 2026-06-20 进化了 jiuqing-project-ship
+- 结果：keep 1 轮；baseline 86，补充 4 个失败路径（LICENSE 缺失、测试失败、CHANGELOG 格式错、版本文件缺失）
+- 有效的改法：新增失败路径表覆盖发版流程中的常见异常
+- 踩的坑：无
+- 对本 skill 的改进线索：threshold-calibration（4/5）的版本检测优先级可更明确
+
+## 2026-06-20 进化了 jiuqing-product-polish
+- 结果：keep 1 次；baseline 91，补充 4 个失败路径（项目类型不可判断、git 未初始化、docs 不可写、checkpoint 损坏）
+- 有效的改法：新增失败路径表，与 convergence.md 的错误处理表形成互补
+- 踩的坑：product-polish 已有 convergence.md 的错误处理表，新补充的失败路径是 SKILL.md 层面的 agent 行为指引，不重复
+- 对本 skill 的改进线索：tooling-executability（4/6）可通过为关键步骤（维度评估、用户视角体验）增加脚本兜底来提升
+
+## 2026-06-20 进化了 jiuqing-roles-debate
+- 结果：keep 1 轮；baseline 79（最低），补充 3 个失败路径（发言质量退化、讨论跑题、用户跳过讨论），精简注意事项段
+- 有效的改法：新增失败路径表 + 删除注意事项中的重复强调，conciseness 有改善
+- 踩的坑：roles-debate 是最复杂的行为类 skill，纯文字改进对 process-predictability（12/15）帮助有限
+- 对本 skill 的改进线索：threshold-calibration（3/5）的 20 轮上限和 >=2 角色共识阈值需要校准依据
