@@ -44,9 +44,9 @@ depends: []
 > 一轮只 edit 一个 **dimension cluster**（rubric 内相关的一组 dimension）。最弱 dimension 常与相邻 dimension 强相关（如 step-verifiability 弱常伴 actionable-specificity 弱），单独改一个会被相关 dimension 拖回；按 cluster 联合 edit 才抓得住 true gain。联合 edit 有损坏其他 dimension 的风险，故配 **regression guard**。
 
 1. **locate** —— 读最新 score，找出最弱 dimension 及其相关 cluster。本轮只动这一 cluster。
-2. **edit** —— 对该 cluster 生成**一处**具体改动，落到实在措辞（不写"优化一下"这类空话），编辑 SKILL.md。
+2. **edit** —— 对该 cluster 生成**一处**具体改动，落到实在措辞（不写"优化一下"这类空话），编辑 SKILL.md。改动必须可验证：要么是新增失败路径（表格行）、要么是补充阈值校准（数字+来源）、要么是精简/合并段落（行数减少）。不允许只改措辞不改结构。
 3. **commit** —— `git commit` 本轮改动，说明动了哪个 cluster、怎么改。
-4. **re-score** —— 派 **2 个新 judge**（不复用上轮 judge，避免 anchoring 上轮分数）+ 保留 **anchor judge**（跨轮固定），共 3 个 judge。train、holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`，用 `scripts/aggregate.py --baseline .evolution/<skill-name>/baseline.json --target-cluster 本轮簇 --anchor .evolution/<skill-name>/anchor-<轮次>.json` 聚合。脚本据 median 与上轮对比、算 gain、按阈值自动标出 regression 与高 variance，并输出 anchor judge 的跨轮 gain。
+4. **re-score** —— 派 **2 个新 judge**（不复用上轮 judge，避免 anchoring 上轮分数）+ 保留 **anchor judge**（跨轮固定），共 3 个 judge。train、holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`，用 `scripts/aggregate.py --baseline .evolution/<skill-name>/baseline.json --target-cluster 本轮簇 --anchor .evolution/<skill-name>/anchor.json` 聚合。脚本功能：①校验 judge 文件维度齐全、分数在 rubric 上限内；②每个 dimension 跨 judge 取 median、算 variance；③与 baseline 对比算 gain、按动态阈值判断 keep/revert；④检测非目标 cluster 的 regression（跌幅 > 2 分）；⑤输出 anchor judge 的跨轮 gain。脚本在 judge 文件缺失或维度不全时直接报错。
 5. **regression guard** —— 由 `aggregate.py` 落实：任一**非目标 cluster** 的 dimension median 较上轮跌幅 > 阈值（脚本内集中定义），即便总分上升也判 revert。
 6. **keep / revert** —— 采纳脚本建议：keep 须 holdout gain ≥ 阈值、无 regression、variance 未告警。否则 `git revert`（**禁用 `git reset --hard`**，保留失败轨迹供分析）。
    - **keep 后**：把本轮聚合 `--emit` 为 `.evolution/<skill-name>/baseline.json`，然后**回到步骤 1 开始下一轮**（locate 新的最弱 cluster → edit → re-score → …）。循环直到 early-stop。
