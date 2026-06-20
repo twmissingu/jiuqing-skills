@@ -39,9 +39,25 @@ RUBRIC_MAX = {
 
 # 阈值（threshold-calibration：这些是默认值，应随实际 judge variance 校准——
 # 若多轮 variance 普遍 > REGRESSION_DROP，说明阈值淹没在噪声里，需调大或增 judge）
-KEEP_MIN_GAIN = 1.0      # 单轮 holdout 总分增益低于此值 → early-stop 信号
-REGRESSION_DROP = 2.0    # 任一非目标 cluster 维度跌幅超此值 → regression，建议 revert
-HIGH_VARIANCE = 2.0      # 某维度 judge 间 variance（样本标准差）超此值 → 判分不可信
+KEEP_MIN_GAIN_BASE = 1.0  # 基线增益阈值；实际阈值随 baseline 动态缩放
+REGRESSION_DROP = 2.0     # 任一非目标 cluster 维度跌幅超此值 → regression，建议 revert
+HIGH_VARIANCE = 2.0       # 某维度 judge 间 variance（样本标准差）超此值 → 判分不可信
+
+
+def dynamic_keep_threshold(base_total):
+    """根据 baseline 总分动态计算 keep 阈值。
+
+    高 baseline（≥90）的 skill 改进空间小，阈值应更宽松；
+    低 baseline（<80）的 skill 改进空间大，阈值保持严格。
+
+    公式：threshold = KEEP_MIN_GAIN_BASE * max(0.3, 1 - (base_total - 70) / 60)
+    - baseline=70 → threshold=1.0（满空间，严格）
+    - baseline=85 → threshold=0.625
+    - baseline=95 → threshold=0.3（接近天花板，宽容）
+    - baseline≥100 → threshold=0.3（下限）
+    """
+    scale = max(0.3, 1 - (base_total - 70) / 60)
+    return round(KEEP_MIN_GAIN_BASE * scale, 2)
 
 
 def normalize_judge_json(raw):
@@ -154,7 +170,8 @@ def main():
         base_med = base.get("dimension_medians", {})
         base_total = base.get("total", 0)
         gain = round(total - base_total, 2)
-        print(f"\n== 对比 baseline（{base_total} → {total}，gain={gain:+}）==")
+        threshold = dynamic_keep_threshold(base_total)
+        print(f"\n== 对比 baseline（{base_total} → {total}，gain={gain:+}，threshold={threshold}）==")
 
         regressions = []
         for dim in RUBRIC_MAX:
@@ -166,8 +183,8 @@ def main():
         if regressions:
             verdict = "REVERT"
             reasons.append("regression guard 触发：" + "；".join(regressions))
-        if gain < KEEP_MIN_GAIN:
-            reasons.append(f"gain {gain:+} < {KEEP_MIN_GAIN}（early-stop 信号）")
+        if gain < threshold:
+            reasons.append(f"gain {gain:+} < {threshold}（early-stop 信号，baseline={base_total}）")
             if verdict != "REVERT":
                 verdict = "REVERT"
         if noisy:

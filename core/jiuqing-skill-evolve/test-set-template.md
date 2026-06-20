@@ -11,7 +11,7 @@
 
 ## 存储格式
 
-存为同目录 `test-set.json`（按需创建，不入库）：
+存为 `.evolution/<skill-name>/test-set.json`（按需创建，不入库）：
 
 ```json
 {
@@ -33,4 +33,16 @@
 ## 使用纪律
 
 - holdout 一旦定下，进化全程不看、不改；中途修改即污染 judge，本轮所有 keep 判定作废。
-- test set 会过时：被改 skill 的能力边界变动时，先更新 test set 再继续，并在 commit 中记录。
+- test set 跨轮保持稳定以确保分数可比——不大幅重写、不替换已有 case。
+
+## 增量更新（跨轮）
+
+进化过程中 LOG 暴露的新 gap 可以补充到 test set，但必须遵守以下规则：
+
+1. **只追加，不修改已有 case** —— 已有 case 的 prompt 和 expect 是跨轮可比的基准，改了就破坏可比性。
+2. **新 case 来源必须是 LOG** —— 只把 LOG 中反复出现（≥2 次）的问题转为 test prompt，单次偶发不加。
+3. **新 case 归入正确 split** —— 新 case 加入后，检查 train/holdout 的 scene 均衡性；若打破均衡则调整切分。
+4. **新 case 需标注来源** —— 在 expect 字段中注明"来源：LOG <日期>"，便于追溯。
+5. **单次最多追加 2 道** —— 防止 test set 膨胀导致评分成本失控。若需要加入更多，先删除同等数量的低价值 case。
+
+增量更新后在 commit 中记录："test set +N case（来源：LOG），train/holdout 保持均衡"。
