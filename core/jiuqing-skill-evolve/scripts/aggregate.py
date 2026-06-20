@@ -87,7 +87,7 @@ def normalize_judge_json(raw):
     return raw
 
 
-def load_json(path):
+def load_json(path, is_baseline=False):
     try:
         with open(path, encoding="utf-8") as f:
             content = f.read()
@@ -97,6 +97,8 @@ def load_json(path):
     # 先尝试直接解析
     try:
         data = json.loads(content)
+        if is_baseline:
+            return data  # baseline 不做 normalize
         return normalize_judge_json(data)
     except json.JSONDecodeError:
         pass
@@ -109,6 +111,8 @@ def load_json(path):
 
     try:
         data = json.loads(fixed)
+        if is_baseline:
+            return data  # baseline 不做 normalize
         return normalize_judge_json(data)
     except json.JSONDecodeError as e:
         sys.exit(f"ERROR: {path} 不是合法 JSON（修复后仍失败：{e}）")
@@ -169,7 +173,7 @@ def main():
     verdict = "KEEP"
     reasons = []
     if args.baseline:
-        base = load_json(args.baseline)
+        base = load_json(args.baseline, is_baseline=True)
         base_med = base.get("dimension_medians", {})
         base_total = base.get("total", 0)
         if base_total == 0:
@@ -214,7 +218,7 @@ def main():
                 print(f"\n== Anchor judge（{args.anchor}）==")
                 print(f"  anchor total: {anchor_total}")
                 if args.baseline:
-                    base = load_json(args.baseline)
+                    base = load_json(args.baseline, is_baseline=True)
                     anchor_base = base.get("anchor_total")
                     if anchor_base:
                         anchor_gain = round(anchor_total - anchor_base, 2)
