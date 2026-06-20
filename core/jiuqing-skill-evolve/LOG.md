@@ -108,3 +108,9 @@
 - roles-debate 的阈值校准改动（加 ≥2 共识规则）反而降低了流程可预测性——新规则引入了额外分支但未被 agent 可靠遵循
 - goal-set judge1 连续两次给"不适用"维度打 15 分（超过该维度满分），说明 judge prompt 对"不适用按满分计"的表述需要更精确
 - 6 个未改动 skill（baseline 84-94）确认无需本轮进化
+
+### 第二轮暴露的协议缺陷（待 skill-evolve 修复）
+1. **keep/revert 后未继续循环** —— protocol 写了 early-stop 条件（gain < 阈值或连续 2 轮无 keep），但 agent 在第一次 keep 后就停止了，没有继续 edit→re-score→keep/revert 循环。原因：SKILL.md 的 ② Evolution loop 描述了单轮流程，但没有显式写"keep 后回到第 1 步继续下一轮"。agent 把"一轮 keep"当成了"完成"。
+2. **"连续 2 轮无 keep"的 early-stop 条件无意义** —— 当前协议是每轮 edit 后立即 re-score 并 keep/revert。如果第一轮就 early-stop（gain < 阈值），根本没有"连续 2 轮"可言。early-stop 条件应改为"单轮 gain < 阈值"即可。
+3. **revert 后的处理路径未编码** —— roles-debate REVERT 后，agent 直接提交了 revert commit 然后跳到下个 skill，没有尝试换一个 cluster 重新 edit。revert 后应该回到 locate 步骤找下一个最弱 cluster 再试。
+4. **"无需进化"的判定标准缺失** —— 对于 baseline ≥ 84 的 6 个 skill，agent 直接跳过了，没有走任何进化流程。但 protocol 没有定义"什么条件下可以跳过"。应该明确：baseline ≥ 90 可跳过；80-90 之间仍应尝试一轮进化。
