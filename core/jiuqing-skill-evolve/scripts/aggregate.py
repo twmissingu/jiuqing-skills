@@ -172,6 +172,8 @@ def main():
         base = load_json(args.baseline)
         base_med = base.get("dimension_medians", {})
         base_total = base.get("total", 0)
+        if base_total == 0:
+            sys.exit(f"ERROR: baseline total=0，文件可能被覆盖或为空。检查 {args.baseline}")
         gain = round(total - base_total, 2)
         threshold = dynamic_keep_threshold(base_total)
         print(f"\n== 对比 baseline（{base_total} → {total}，gain={gain:+}，threshold={threshold}）==")
