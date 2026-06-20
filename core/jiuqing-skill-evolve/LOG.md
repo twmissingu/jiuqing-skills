@@ -97,3 +97,14 @@
 ### 对本 skill 的改进线索
 - judge 偶发空输出需要在协议中编码：aggregate.py 应检测空 judge 并报错
 - baseline 方差大意味着"跨轮可比性"需要更强的锚定（如固定 1-2 个 judge 不轮换）
+
+### 第二轮 keep/revert 决策
+- **roles-debate**：REVERT（85→83，-2 regression）。阈值校准改动导致 process-predictability 下降，回滚。
+- **goal-set**：KEEP（82→88，+6）。产出框架细化有效，actionable-specificity 提升。
+- **skill-create**：KEEP（84→89，+5）。安全约束有效，high-risk-blacklist 提升。
+- **product-polish**：KEEP（83→85，+2）。评分证据要求有效，tooling-executability 提升。
+
+### 第二轮教训
+- roles-debate 的阈值校准改动（加 ≥2 共识规则）反而降低了流程可预测性——新规则引入了额外分支但未被 agent 可靠遵循
+- goal-set judge1 连续两次给"不适用"维度打 15 分（超过该维度满分），说明 judge prompt 对"不适用按满分计"的表述需要更精确
+- 6 个未改动 skill（baseline 84-94）确认无需本轮进化
