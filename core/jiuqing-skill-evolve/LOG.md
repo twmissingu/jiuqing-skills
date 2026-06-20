@@ -65,3 +65,35 @@
 - 有效的改法：aggregate.py 新增 normalize_judge_json() 函数，自动处理嵌套 dimensions、extra 字段、list 格式、未转义中文引号四类常见格式问题；SKILL.md 在 baseline score 步骤明确 judge 输出格式要求
 - 踩的坑：10 次进化中每次都有 judge 格式问题需要手动修复，说明这是系统性痛点而非偶发；修复应下沉到工具层而非每次靠 prompt 约束
 - 对本 skill 的改进线索：后续可考虑为 test-set-template.md 增加 test prompt 的格式校验（确保 scene 字段覆盖均衡）
+
+## 2026-06-20 第二轮进化（全部重新评分）
+
+### 全局 baseline 对比
+| Skill | 旧 baseline | 新 baseline | 变化 |
+|-------|-----------|-----------|------|
+| image-generate | 69 | 84 | +15 |
+| video-generate | 93 | 89 | -4 |
+| prompt-refine | 90 | 86 | -4 |
+| idea-grill | 89 | 86 | -3 |
+| agents-inject | 91 | 94 | +3 |
+| goal-set | 82 | 82 | 0 |
+| skill-create | 85 | 84 | -1 |
+| project-ship | 86 | 91 | +5 |
+| product-polish | 91 | 83 | -8 |
+| roles-debate | 79 | 85 | +6 |
+
+### 本轮改进
+- **roles-debate**：补 20 轮上限和 ≥2 角色共识的校准依据（threshold-calibration 3/5 → 预估 4/5）
+- **goal-set**：细化产出框架，每块写具体写法（actionable-specificity 4/6 → 预估 5/6）
+- **skill-create**：补安全约束（禁止危险 skill、禁止嵌入 shell 命令）（high-risk-blacklist 3/5 → 预估 4/5）
+- **product-polish**：补维度评估证据要求和用户视角检查清单（tooling-executability 4/6 → 预估 5/6）
+
+### 踩的坑
+- 第二轮 baseline 与第一轮差异较大（image-generate 从 69→84，product-polish 从 91→83），说明 judge 方差对 baseline 影响显著
+- idea-grill judge2 输出空 JSON（agent 写了空 `{}`），需补发；说明 judge agent 偶尔会产出空结果
+- 视频和 prompt-refine 的 baseline 反而下降（-4），可能是第一轮 judge 偏宽松
+- 动态阈值（aggregate.py）在本轮未被使用（因为没有 evolution loop 的 keep/revert 决策），需下轮验证
+
+### 对本 skill 的改进线索
+- judge 偶发空输出需要在协议中编码：aggregate.py 应检测空 judge 并报错
+- baseline 方差大意味着"跨轮可比性"需要更强的锚定（如固定 1-2 个 judge 不轮换）
