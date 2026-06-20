@@ -25,6 +25,7 @@ skills/
 ├── core/       # 基础领域 — 通用能力，其他领域可组合调用
 ├── dev/        # 开发领域 — 需求分析、代码审查、发布检查等
 ├── content/    # 内容领域 — 文案审核、图片生成、视频生成等
+├── scripts/    # 工具脚本（如 sync.sh 多平台软链）
 ├── AGENTS.md
 ├── LICENSE
 └── README.md
@@ -57,7 +58,31 @@ depends: []    # 可选，引用其他 skill 的 name
 
 ## 使用方式
 
-将此仓库路径添加到 agent 的 skill 搜索路径中即可。
+本仓库是 skill 的**唯一真身**。各 agent 平台扫描自己的扁平 `skills/` 目录，通过软链指回本仓库，从而一处维护、多平台生效。
+
+### 安装到各平台
+
+```bash
+./scripts/sync.sh            # 为每个 skill 在各平台目录建软链
+./scripts/sync.sh --dry-run  # 只预览将要做什么，不实际改动
+```
+
+脚本会软链到以下已存在的平台目录（不存在的自动跳过）：
+
+| 平台 | 目录 |
+|------|------|
+| Claude Code | `~/.claude/skills/` |
+| Codex | `~/.codex/skills/` |
+| OpenCode | `~/.config/opencode/skills/` |
+
+同名冲突时脚本只跳过并警告，绝不覆盖既有内容；重复运行幂等。
+
+> zcode 走插件市场机制（非本地扁平目录），暂不通过软链纳入，需另行打包为插件。
+
+### 保持最新
+
+- **更新已有 skill 内容**：在本仓库 `git pull` 即可。软链指向真身，各平台自动用到最新。
+- **新增 skill**：`git pull` 后重跑 `./scripts/sync.sh` 补上新软链。
 
 ## License
 
