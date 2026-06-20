@@ -88,3 +88,4 @@ done
 echo
 echo "完成：新建软链 ${linked}，已存在跳过 ${skipped}，冲突警告 ${warned}。"
 [[ $DRY_RUN -eq 1 ]] && echo "（dry-run，未实际改动）"
+exit 0
