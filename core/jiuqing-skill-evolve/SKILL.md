@@ -22,7 +22,8 @@ depends: []
 ## ① Setup（进化前一次性）
 
 1. **single editable asset** —— 一次只 edit 一个 SKILL.md，改动才可归因。多个 skill 排队逐个进化。
-2. **构建或继承 test set** —— 若 `.evolution/<skill-name>/test-set.json` 已存在（上轮进化遗留），直接复用；若不存在，写 ≥6 道测试 prompt（让 agent 实际执行该 skill 的典型场景），按 `test-set-template.md` 随机切成 **train** 与 **holdout**。test set 跨轮保持稳定以确保分数可比；仅在 LOG 暴露新 gap 时按 `test-set-template.md` 的增量规则补充，不大幅重写。holdout 全程不参与 edit 决策，仅在 keep 判定时作 judge；无 holdout 不许进化。
+2. **跳过判定** —— baseline ≥ 90 分的 skill 可跳过进化（改进空间极小，投入产出比不划算）；80-90 分的 skill 仍应尝试一轮进化；< 80 分的 skill 必须进化。
+3. **构建或继承 test set** —— 若 `.evolution/<skill-name>/test-set.json` 已存在（上轮进化遗留），直接复用；若不存在，写 ≥6 道测试 prompt（让 agent 实际执行该 skill 的典型场景），按 `test-set-template.md` 随机切成 **train** 与 **holdout**。test set 跨轮保持稳定以确保分数可比；仅在 LOG 暴露新 gap 时按 `test-set-template.md` 的增量规则补充，不大幅重写。holdout 全程不参与 edit 决策，仅在 keep 判定时作 judge；无 holdout 不许进化。
 3. **baseline 继承或新建** —— 若 `.evolution/<skill-name>/baseline.json` 已存在（上轮 keep 的最高分），直接作为本轮 baseline，无需重新打分。若不存在，派 ≥3 个 independent judge（judge ≠ 后续 edit agent），各按 `evaluation-rubric.md` 在 train 与 holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`。judge 输出必须是**平铺 JSON**（`{"维度名": {"score": N, "reason": "..."}}`），不要嵌套在 `dimensions` 等 key 下；reason 字段内不要用双引号包裹中文术语。`scripts/aggregate.py` 会自动修复常见的格式问题，但仍建议 judge 严格按格式输出。脚本会在 judge 文件缺失或维度不全时直接报错，挡住"跳过实跑、脑补打分"。
 4. 🔴 **CHECKPOINT** —— 把 baseline 报告（各 dimension 分、最弱 dimension、variance）交用户，确认改进方向再继续。
 
@@ -35,8 +36,13 @@ depends: []
 3. **commit** —— `git commit` 本轮改动，说明动了哪个 cluster、怎么改。
 4. **re-score** —— 派**新一批** independent judge（不复用上轮 judge，避免 anchoring 上轮分数），train、holdout 上实跑后 score，评分 JSON 存到 `.evolution/<skill-name>/`，用 `scripts/aggregate.py --baseline .evolution/<skill-name>/baseline.json --target-cluster 本轮簇` 聚合。脚本据 median 与上轮对比、算 gain、按阈值自动标出 regression 与高 variance。
 5. **regression guard** —— 由 `aggregate.py` 落实：任一**非目标 cluster** 的 dimension median 较上轮跌幅 > 阈值（脚本内集中定义），即便总分上升也判 revert。
-6. **keep / revert** —— 采纳脚本建议：keep 须 holdout gain ≥ 阈值、无 regression、variance 未告警。否则 `git revert`（**禁用 `git reset --hard`**，保留失败轨迹供分析）。keep 时把本轮聚合 `--emit` 为 `.evolution/<skill-name>/baseline.json`；baseline 只锁定被 keep 过的最高分，revert 轮不污染 baseline。
-7. **early-stop** —— 单轮 holdout gain < 动态阈值（`aggregate.py` 据 baseline 总分自动计算：baseline ≥90 时阈值约 0.3，baseline <80 时约 1.0），或连续 2 轮无 keep，自动 early-stop。
+6. **keep / revert** —— 采纳脚本建议：keep 须 holdout gain ≥ 阈值、无 regression、variance 未告警。否则 `git revert`（**禁用 `git reset --hard`**，保留失败轨迹供分析）。
+   - **keep 后**：把本轮聚合 `--emit` 为 `.evolution/<skill-name>/baseline.json`，然后**回到步骤 1 开始下一轮**（locate 新的最弱 cluster → edit → re-score → …）。循环直到 early-stop。
+   - **revert 后**：baseline 不变，**回到步骤 1 重新 locate**，换一个不同的 cluster 尝试。同一 cluster 连续 revert 2 次则跳过该 cluster。
+7. **early-stop** —— 满足任一即停止循环：
+   - 单轮 holdout gain < 动态阈值（`aggregate.py` 据 baseline 总分自动计算）
+   - 同一 cluster 连续 2 轮 revert
+   - 所有 cluster 都已尝试过
 8. 🔴 **CHECKPOINT** —— 展示本轮 diff、各 dimension 分变化、keep/revert 结论，由用户确认是否进入下一轮。
 
 ## ③ 交付前自检
