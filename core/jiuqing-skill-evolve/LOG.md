@@ -135,3 +135,33 @@
 
 ### 驱动力
 两轮实战中 agent 反复违反协议：跳过 re-score、keep 后停止循环、并行处理 10 个 skill。文字描述不够，需要结构性约束（GATE 检查点）和显式禁止（红线）。
+
+## 2026-06-20 自进化（完整循环）
+
+### Baseline
+- 总分：76/100（< 80，必须进化）
+- 最弱 dimension：threshold-calibration=2/5, failure-coverage=2/4
+- anchor judge：judge1
+
+### Round 1
+- cluster：threshold-calibration + failure-coverage + actionable-specificity
+- edit：新增阈值校准表（6 个阈值+来源）+ 失败路径表（6 个场景）
+- 结果：76→86（+10），anchor 79→87（+8）→ **KEEP**
+- 有效：阈值校准表（threshold-calibration 2→4）和失败路径表（failure-coverage 2→3）效果显著
+
+### Round 2
+- cluster：actionable-specificity + conciseness
+- edit：GATE 检查点从抽象描述改为具体操作清单
+- 结果：86→85（-1）→ **REVERT**
+- 原因：GATE 改动虽然让措辞更具体，但增加了正文长度和阅读复杂度，process-predictability 从 13 降到 12
+
+### GATE 检查
+- gain=-1 < threshold=2.13 → early-stop 条件满足，停止循环
+
+### 终值
+- baseline=76 → 终值=86，净增 +10
+- 最大贡献 cluster：threshold-calibration + failure-coverage（+7 分）
+
+### 对本 skill 的改进线索
+- aggregate.py 的 `--baseline` 对比有 bug（显示 baseline=0），需要修复
+- Round 2 的失败说明：让 GATE 更"具体"不一定提升 actionable-specificity，反而可能增加复杂度损害 process-predictability
