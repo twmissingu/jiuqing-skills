@@ -61,3 +61,12 @@ depends: [jiuqing-idea-grill]
 - 只做"迭代打磨到可交付"，**不做对外发版动作**(打 tag、推送、创建 Release 交给 `jiuqing-project-ship`)。
 - 不擅自扩大对齐时定下的迭代范围，不动声明保留的部分。
 - 回滚用的 `git checkout`/`rm` 属本地恢复操作；任何 `git commit`/`git push` 仍须先经用户同意，遵循仓库版本控制规范。
+
+## 失败路径
+
+| 场景 | 信号 | 处理 |
+|------|------|------|
+| 项目类型无法判断 | 无包管理文件、无 src/、代码文件 <3 个 | 告诉用户项目太小或不完整，建议先用 jiuqing-idea-grill 理清方向 |
+| git 未初始化 | `git status` 报错 | 跳过 git 相关操作（diff、commit），仅做文件级改动 |
+| docs/ 目录不可写 | 权限错误 | 告诉用户检查目录权限，或指定其他文档目录 |
+| checkpoint 损坏 | JSON 解析失败 | 从头开始，保留已有 docs/ 文档 |
