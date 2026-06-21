@@ -1,88 +1,148 @@
+[![English](https://img.shields.io/badge/English-blue.svg)](README.md)
+[![中文](https://img.shields.io/badge/中文-red.svg)](README_zh.md)
+
+---
+
 # Skills
 
-Agent 通用技能库。
+A cross-platform skill library for AI agents — write each capability once, use it everywhere.
 
-## 设计理念
+## Why This Project?
 
-每个 skill 是一个独立的 `SKILL.md` 文件，可跨平台使用（Codex、Claude Code、OpenCode 等）。技能之间通过 `depends` 字段声明依赖关系，组合调用时由 agent 自行加载。
+AI coding agents (Codex, Claude Code, OpenCode, and more) each scan their own flat `skills/` directory. Maintaining the same capability separately for every platform is tedious and drifts out of sync.
 
-## 命名规则
+This repo is the **single source of truth**. Every skill is a self-contained `SKILL.md`; each platform symlinks back here, so you maintain in one place and it takes effect everywhere. Skills declare dependencies on one another via a `depends` field, and the agent loads the dependency chain on demand.
 
-技能采用 `jiuqing-名词-动词` 的英文命名：固定前缀 `jiuqing` + 名词 + 动词，单词之间用连字符连接，全部小写，不使用缩写。目录名与 frontmatter 的 `name` 字段保持一致。
+## Features
 
-| 命名 | 功能 |
-|------|------|
-| `jiuqing-idea-grill` | 执行前拷问方案 / 信息对齐 |
-| `jiuqing-image-generate` | AI 生图 |
-| `jiuqing-video-generate` | AI 生视频 |
-| `jiuqing-question-deepen` | 追问 / 深度分析 |
-| `jiuqing-character-simulate` | 角色模拟 |
+- 🧩 **Composable** — skills reference each other through `depends`; base skills are reused, not duplicated
+- 🔗 **Single source of truth** — one repo, symlinked into every platform's skill directory
+- 🗂️ **Three domains** — `core` (foundational), `dev` (engineering), `content` (creation)
+- ✅ **Align before acting** — `jiuqing-idea-grill` interrogates the plan before any irreversible step
+- 🔒 **Secret-safe** — generation scripts read keys only from environment variables, never hardcoded
 
-## 目录结构
+## Skill Catalog
+
+Skills are named `jiuqing-<noun>-<verb>`: the fixed prefix `jiuqing` + a noun + a verb, hyphen-joined, all lowercase, no abbreviations. The directory name matches the `name` field in the frontmatter.
+
+### core — foundational capabilities
+
+| Skill | Purpose |
+|-------|---------|
+| `jiuqing-idea-grill` | Interrogate a plan/requirement/intent one item at a time and align before acting — callable directly, or referenced by other skills via `depends` as a pre-execution alignment step |
+| `jiuqing-roles-debate` | Review and stress-test a deliverable (doc, project, code, design) from multiple roles/perspectives across rounds until a consensus conclusion |
+| `jiuqing-session-handoff` | Compress the current session into a handoff doc for switching models or agent platforms, or for starting a fresh session |
+| `jiuqing-skill-create` | Scaffold a new skill in the standard format |
+| `jiuqing-skill-evolve` | Iteratively improve and evolve an existing skill against scored feedback |
+
+### dev — engineering capabilities
+
+| Skill | Purpose |
+|-------|---------|
+| `jiuqing-agents-inject` | Inject/initialize agent behavior rules into a project's AGENTS.md |
+| `jiuqing-bug-diagnose` | Systematically locate and diagnose stubborn bugs and performance regressions |
+| `jiuqing-context-sync` | Extract domain concepts into a glossary / CONTEXT.md to unify project terminology |
+| `jiuqing-goal-set` | Set a release-focused project goal and produce a goal prompt for an agent |
+| `jiuqing-prd-write` | Turn a discussion into a PRD / product requirements doc |
+| `jiuqing-product-polish` | Autonomously iterate and polish a project toward a shippable state |
+| `jiuqing-project-ship` | Gate the whole pre-release pipeline (security, legal, quality, version, docs) |
+
+### content — creation capabilities
+
+| Skill | Purpose |
+|-------|---------|
+| `jiuqing-image-generate` | Generate images from a text prompt |
+| `jiuqing-video-generate` | Generate a video clip from a text prompt |
+| `jiuqing-prompt-refine` | Refine a short idea into a professional image/video generation prompt |
+
+## Directory Structure
 
 ```
 skills/
-├── core/       # 基础领域 — 通用能力，其他领域可组合调用
-├── dev/        # 开发领域 — 需求分析、代码审查、发布检查等
-├── content/    # 内容领域 — 文案审核、图片生成、视频生成等
-├── scripts/    # 工具脚本（如 sync.sh 多平台软链）
+├── core/       # Foundational domain — shared capabilities others compose on
+├── dev/        # Engineering domain — requirements, review, release checks, etc.
+├── content/    # Content domain — prompt refinement, image/video generation, etc.
+├── scripts/    # Tooling (e.g. sync.sh for multi-platform symlinks)
 ├── AGENTS.md
+├── CHANGELOG.md
 ├── LICENSE
 └── README.md
 ```
 
-## SKILL.md 标准
+## SKILL.md Standard
 
-每个 skill 必须遵循以下 frontmatter 格式：
+Every skill must follow this frontmatter format:
 
 ```yaml
 ---
-name: jiuqing-名词-动词
-description: 一句话描述技能用途
+name: jiuqing-<noun>-<verb>
+description: One-line description of what the skill does
 category: core | dev | content
-depends: []    # 可选，引用其他 skill 的 name
+depends: []    # optional, references the name of other skills
 ---
 ```
 
-正文部分为 agent 执行的行为规范。
+The body is the behavioral specification the agent executes.
 
-## 组合规则
+## Composition Rules
 
-- `core/` 下的 skill 是基础能力，其他领域可通过 `depends` 引用
-- 组合 skill 在正文中显式说明调用了哪些基础 skill 的能力
-- agent 运行时根据 `depends` 自行决定是否加载基础 skill
+- Skills under `core/` are base capabilities; other domains reference them via `depends`
+- A composing skill explicitly states in its body which base skills it draws on
+- At runtime the agent decides whether to load a base skill based on `depends`
 
-## 执行前对齐
+## Align Before Acting
 
-`core/jiuqing-idea-grill` 提供"执行前先对齐信息"的能力：像面试一样逐个拷问方案与需求，达成共识后再动手。需要这一环节的 skill 在 `depends` 中声明 `jiuqing-idea-grill` 即可；不声明的固定脚本类 skill 直接执行，不触发对齐。
+`core/jiuqing-idea-grill` provides the "align information before acting" capability: it interrogates the plan and requirements one item at a time, like an interview, and reaches consensus before any work begins. A skill that needs this step declares `jiuqing-idea-grill` in `depends`; fixed-script skills that do not declare it run directly without triggering alignment.
 
-## 使用方式
+## Quick Start
 
-本仓库是 skill 的**唯一真身**。各 agent 平台扫描自己的扁平 `skills/` 目录，通过软链指回本仓库，从而一处维护、多平台生效。
+### Prerequisites
 
-### 安装到各平台
+- `bash` and `git`
+- An agent platform with a flat `skills/` directory (Claude Code, Codex, OpenCode)
+
+### Installation
 
 ```bash
-./scripts/sync.sh            # 为每个 skill 在各平台目录建软链
-./scripts/sync.sh --dry-run  # 只预览将要做什么，不实际改动
+git clone git@github.com:twmissingu/jiuqing-skills.git
+cd jiuqing-skills
+./scripts/sync.sh            # symlink each skill into every platform directory
+./scripts/sync.sh --dry-run  # preview only, no changes
 ```
 
-脚本会软链到以下已存在的平台目录（不存在的自动跳过）：
+`sync.sh` symlinks into the following existing platform directories (missing ones are skipped automatically):
 
-| 平台 | 目录 |
-|------|------|
+| Platform | Directory |
+|----------|-----------|
 | Claude Code | `~/.claude/skills/` |
 | Codex | `~/.codex/skills/` |
 | OpenCode | `~/.config/opencode/skills/` |
 
-同名冲突时脚本只跳过并警告，绝不覆盖既有内容；重复运行幂等。
+On a name clash the script skips and warns — it never overwrites existing content. Re-running is idempotent.
 
-> zcode 走插件市场机制（非本地扁平目录），暂不通过软链纳入，需另行打包为插件。
+> zcode uses a plugin-marketplace mechanism (not a local flat directory), so it is not symlinked here; it must be packaged as a plugin separately.
 
-### 保持最新
+### Staying Up to Date
 
-- **更新已有 skill 内容**：在本仓库 `git pull` 即可。软链指向真身，各平台自动用到最新。
-- **新增 skill**：`git pull` 后重跑 `./scripts/sync.sh` 补上新软链。
+- **Update an existing skill's content**: `git pull` in this repo. Symlinks point to the source, so every platform picks up the latest automatically.
+- **Add a new skill**: after `git pull`, re-run `./scripts/sync.sh` to add the new symlinks.
+
+## For AI Agents
+
+1. **Clone and link**
+   ```bash
+   git clone git@github.com:twmissingu/jiuqing-skills.git
+   cd jiuqing-skills
+   ./scripts/sync.sh
+   ```
+2. **Discover** — skills live under `core/`, `dev/`, `content/`; each directory holds one `SKILL.md`. The directory name is the skill name.
+3. **Load on demand** — read a skill's frontmatter; if `depends` is set, load the referenced base skills first.
+
+Note: `jiuqing-image-generate` and `jiuqing-video-generate` require the `AGNES_API_KEY` environment variable. The scripts read the key only from the environment — never from files or arguments.
+
+## Contributing
+
+Use `jiuqing-skill-create` to scaffold a new skill in the standard format, then run `./scripts/sync.sh`. Keep one meaning defined in exactly one place, and follow the writing principles in [AGENTS.md](AGENTS.md).
 
 ## License
 
