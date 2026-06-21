@@ -165,3 +165,33 @@
 ### 对本 skill 的改进线索
 - aggregate.py 的 `--baseline` 对比有 bug（显示 baseline=0），需要修复
 - Round 2 的失败说明：让 GATE 更"具体"不一定提升 actionable-specificity，反而可能增加复杂度损害 process-predictability
+
+## 2026-06-20 进化了 jiuqing-context-sync
+- 结果：跳过进化；baseline 93（≥90），符合跳过标准
+- 有效的改法：无（未执行进化）
+- 踩的坑：无
+- 对本 skill 的改进线索：baseline ≥90 的 skill 改进空间极小（<10%），投入产出比不划算。该 skill 已在起草时内置了失败路径表、安全约束、可检验完成标准，无需额外进化。
+
+## 2026-06-21 进化了 jiuqing-prd-write
+- 结果：keep 1 轮；baseline 89 → R1 92（+3）→ R2 REVERT（-1），终值 92
+- 有效的改法：Round 1 改进 actionable-specificity + failure-coverage cluster——把 seam 划定的模糊措辞（"尽可能高位"、"理想是1个"）改为具体规则（复用优先、高位切入、数量控制≤3），补充 4 个失败路径（用户矛盾、模板不适用、中途改主意、要求写代码）
+- 踩的坑：Round 2 精简定位段（合并两段为一句话）反而导致 conciseness 从 6 降到 5、info-layering 从 5 降到 4，说明"定位"和"边界"的分离对读者理解有独立价值，不宜为了精简而合并
+- 对本 skill 的改进线索：failure-coverage 仍是 3/4，可考虑补充"PRD 过长超出 token 限制"和"用户要求修改已写好 PRD"两个失败路径；conciseness 5/6 有提升空间但需更精细的删减策略，不能靠合并段落
+
+## 2026-06-21 进化了 jiuqing-session-handoff
+- 结果：跳过进化；baseline 97（≥90），符合跳过标准
+- 有效的改法：无（未执行进化）
+- 踩的坑：无
+- 对本 skill 的改进线索：baseline 97 分极高，几乎所有维度满分或接近满分。唯一扣分点是 process-predictability（14/15），因为"文档结构参考"的"不必拘泥"措辞引入轻微输出变异。但这是合理的设计选择——交接文档应按焦点裁剪，不应强制统一格式。
+
+## 2026-06-21 进化了 jiuqing-bug-diagnose
+- 结果：keep 1 轮；baseline 82 → R1 87（+5）→ R2 REVERT（+0），终值 87
+- 有效的改法：Round 1 改进 high-risk-blacklist + failure-coverage cluster——补充禁止破坏性操作（rm -rf、git reset --hard、force push），补充 5 个失败路径（环境差异、外部依赖、工具链故障、范围蔓延、不可修复）
+- 踩的坑：Round 2 改进 threshold-calibration（为 2秒/30秒、50%/1% 阈值添加校准依据）没有带来分数提升（gain=+0），说明这些阈值虽然缺乏显式校准依据，但 judge 认为它们在调试领域是合理的经验启发式
+- 对本 skill 的改进线索：tooling-executability 仍是 4/6（或 3/6），作为纯流程型 skill 这是合理的——执行依赖 agent 的工具使用能力而非预置脚本。actionable-specificity 5/6 可通过更具体的降级策略提升
+
+## 2026-06-21 自进化了 jiuqing-skill-evolve
+- 结果：keep 1 轮；baseline 91 → R1 92（+1）→ R2 REVERT（-8），终值 92
+- 有效的改法：Round 1 改进 tooling-executability + step-verifiability cluster——为 edit 步骤添加可验证的改动类型（失败路径、阈值校准、精简合并），为 re-score 步骤详细描述 aggregate.py 的 5 项功能
+- 踩的坑：Round 2 改进 info-layering（精简 anchor judge 描述）导致分数大幅下降（-8），说明 anchor judge 的描述虽然有冗余，但删除后反而降低了信息密度——judge 认为冗余是必要的上下文
+- 对本 skill 的改进线索：baseline 92 分很高，改进空间有限。info-layering 4/5 和 failure-coverage 4/4 都是高分，精简反而可能损害信息完整性。tooling-executability 5/6 是当前最弱维度，但作为依赖外部脚本的 skill 这是合理的——除非把脚本内嵌，否则难以进一步提升
