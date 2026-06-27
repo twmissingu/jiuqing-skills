@@ -108,3 +108,6 @@ depends: []
 | 想并行处理多个 skill | agent 觉得这样效率高 | 红线禁止。并行导致 judge 混淆和改动归因不清 |
 | judge 输出空 JSON 或超上限分数 | aggregate.py 报错 | 补发 judge；检查 prompt 是否明确写了分数上限 |
 | 用户说"不用评分了直接改" | 用户要求跳过评分步骤 | 解释评分是进化的基础，跳过评分的改动无法验证真伪 |
+| judge 输出嵌套格式（dimensions/scores 下而非平铺） | aggregate.py 报"缺维度"但实际数据完整 | 手动修复：检查嵌套 key 是否含完整 14 维度数据，提取后重写为平铺 JSON 再聚合。LOG 记录≥4次 |
+| 高 baseline(≥85) edit 后非目标 cluster 回归 | keep/revert 决策时发现非目标 dim 下降 | 优先选"替换措辞/嵌入式补来源"策略，不优先新增段落。加内容型 edit 在高 baseline 时易触发 dimension negative correlation |
+| judge 连接中断/超时未输出文件 | agent 返回但 JSON 文件不存在 | 补发同名 judge；同一 judge 补发不超过 2 次，仍失败则用 2 个 judge 聚合（aggregate.py 需支持偶数 judge） |
