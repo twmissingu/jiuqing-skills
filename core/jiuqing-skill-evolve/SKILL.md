@@ -111,3 +111,5 @@ depends: []
 | judge 输出嵌套格式（dimensions/scores 下而非平铺） | aggregate.py 报"缺维度"但实际数据完整 | 手动修复：检查嵌套 key 是否含完整 14 维度数据，提取后重写为平铺 JSON 再聚合。LOG 记录≥4次 |
 | 高 baseline(≥85) edit 后非目标 cluster 回归 | keep/revert 决策时发现非目标 dim 下降 | 优先选"替换措辞/嵌入式补来源"策略，不优先新增段落。加内容型 edit 在高 baseline 时易触发 dimension negative correlation |
 | judge 连接中断/超时未输出文件 | agent 返回但 JSON 文件不存在 | 补发同名 judge；同一 judge 补发不超过 2 次，仍失败则用 2 个 judge 聚合（aggregate.py 需支持偶数 judge） |
+| test prompt 执行时 agent 拒绝或产出空内容 | judge 报告某个 prompt 产出为空或被拒绝 | 跳过该 prompt 的评分，在聚合时标注"prompt X 产出为空，不计入总分"；若 ≥2 个 prompt 空产出则重写 test set |
+| 多轮进化中上下文窗口耗尽 | agent 输出被截断、遗忘前几轮的 keep/revert 记录 | 从 .evolution/<skill>/baseline.json 恢复最新状态；LOG.md 是跨会话记忆源，重新读取即可续接 |
