@@ -1,6 +1,6 @@
 ---
 name: jiuqing-prompt-refine
-description: 当用户给出一句简短的图片或视频生成想法、希望把提示词写得更专业更出图、问"这个 prompt 怎么改更好"、或想让 AI 出图/出视频更符合预期时使用。
+description: 当用户要为 AI 图片或视频生成模型写/改提示词时使用——给出一句简短的出图/出视频想法、想让画面更符合预期、或希望把图视频生成 prompt 写得更专业。仅限视觉生成场景，不处理通用文本 prompt（那走 jiuqing-prompt-optimize）。
 category: content
 depends: [jiuqing-idea-grill]
 ---
